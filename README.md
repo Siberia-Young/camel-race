@@ -10,3 +10,9 @@ This is a project that simulates the board game "Camel Race".
 5. 粗略完成单轮领先下注展示；
 6. 粗略完成玩家操作面板；
 7. 粗略完成基本游戏流程
+8. 完成游戏进行中状态、每轮结算状态
+
+## version 0.1.1
+
+1. 补充玩家操作面板的陷阱操作
+2. 完成初始化状态、等待开始状态

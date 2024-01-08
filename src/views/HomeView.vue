@@ -12,6 +12,35 @@
       </div>
       <div class="middle">
         <BetSection class="bet-section" :bet="bet" />
+        <div
+          class="initial-section"
+          v-if="globalState === 'initial' || globalState === 'wait'"
+        >
+          <el-button
+            type="danger"
+            @click="skipInitialize"
+            v-if="globalState === 'initial' || globalState === 'wait'"
+            >跳过初始化</el-button
+          >
+          <el-button
+            type="primary"
+            @click="initialize"
+            v-if="globalState === 'initial'"
+            >初始化</el-button
+          >
+          <el-button
+            type="warning"
+            @click="reInitialize"
+            v-if="globalState === 'wait'"
+            >重新初始化</el-button
+          >
+          <el-button
+            type="primary"
+            @click="confirmInitialize"
+            v-if="globalState === 'wait'"
+            >继续</el-button
+          >
+        </div>
         <div class="choose-section" v-if="globalState === 'running'">
           <el-radio-group class="choose" v-model="choose">
             <el-radio class="choose-item" label="1" border>
@@ -31,8 +60,8 @@
                     v-model="singleForecast.type"
                     :disabled="forecast_disabled || choose != '2'"
                   >
-                    <el-radio label="win">第一名</el-radio>
-                    <el-radio label="lose">倒一名</el-radio>
+                    <el-radio label="win">冠军</el-radio>
+                    <el-radio label="lose">垫底</el-radio>
                   </el-radio-group>
                 </div>
                 <div class="choose-item-info">
@@ -83,8 +112,44 @@
                 </div>
               </div>
             </el-radio>
-            <el-radio class="choose-item" label="4" border>
-              <div class="trap">陷阱</div>
+            <el-radio
+              class="choose-item"
+              label="4"
+              border
+              :disabled="trap_disabled"
+            >
+              <div class="trap">
+                陷阱
+                <div class="choose-item-info">
+                  陷阱1:
+                  <el-select
+                    v-model="singleTrap.cellId"
+                    placeholder="请选位置"
+                    size="small"
+                    :disabled="trap_disabled || choose != '4'"
+                  >
+                    <el-option
+                      v-for="item in Array.from(
+                        { length: this.raceMileage },
+                        (_, index) => index + 1
+                      )"
+                      :key="item"
+                      :label="item"
+                      :value="item"
+                    />
+                  </el-select>
+                </div>
+                <div class="choose-item-info">
+                  陷阱2:
+                  <el-radio-group
+                    v-model="singleTrap.type"
+                    :disabled="trap_disabled || choose != '4'"
+                  >
+                    <el-radio label="+1">+1</el-radio>
+                    <el-radio label="-1">-1</el-radio>
+                  </el-radio-group>
+                </div>
+              </div>
             </el-radio>
           </el-radio-group>
           <el-button-group class="operate">
@@ -98,7 +163,7 @@
             >
           </el-button-group>
         </div>
-        <div class="phased-section" v-if="globalState === 'wait'">
+        <div class="phased-section" v-if="globalState === 'settling'">
           <el-button type="primary" @click="comeon">继续</el-button>
         </div>
         <div class="finally-section" v-if="globalState === 'finished'">
@@ -130,7 +195,7 @@ export default {
   },
   data() {
     return {
-      globalState: "running", //info,initial,running,wait,finished
+      globalState: "initial", //info,initial,wait,running,settling,finished
       playerNum: 8,
       currentPlayer: 0,
       playerNames: [
@@ -150,6 +215,7 @@ export default {
       camelStates: [],
       forecast: [],
       bet: [],
+      trap: [],
       dices: [],
       diceStates: [],
 
@@ -162,6 +228,11 @@ export default {
       singleBet: {
         playerId: "",
         camelId: "",
+      },
+      singleTrap: {
+        type: "",
+        playerId: "",
+        cellId: "",
       },
     };
   },
@@ -178,6 +249,16 @@ export default {
         true
       );
     },
+    trap_disabled() {
+      let players = [];
+      this.trap.forEach((item) => {
+        players.push(item.playerId);
+      });
+      return (
+        this.trap.length >= this.playerNum ||
+        players.includes(this.currentPlayer)
+      );
+    },
     submit_disabled() {
       if (this.choose === "0") return true;
       else if (this.choose === "1") return this.dices.length === 0;
@@ -186,7 +267,8 @@ export default {
           this.singleForecast.type === "" || this.singleForecast.camelId === ""
         );
       else if (this.choose === "3") return this.singleBet.camelId === "";
-      else if (this.choose === "4") return false;
+      else if (this.choose === "4")
+        return this.singleTrap.cellId === "" || this.singleTrap.type === "";
       else return false;
     },
   },
@@ -232,6 +314,38 @@ export default {
     }
   },
   methods: {
+    skipInitialize() {
+      this.camelStates.forEach((camelState) => {
+        if (camelState.name === "black" || camelState.name === "white") {
+          camelState.position = this.raceMileage;
+        } else {
+          camelState.position = -1;
+        }
+      });
+      for (let i = 0; i < this.raceMileage; i++) {
+        this.raceStates[i].camels = [];
+      }
+      this.globalState = "running";
+    },
+    initialize() {
+      let diceArr = [0, 1, 2, 3, 4, 5, 6];
+      for (let i = 0; i < 7; i++) {
+        let index = Math.floor(Math.random() * diceArr.length);
+        let step = Math.floor(Math.random() * 3) + 1;
+        let id = diceArr[index];
+        diceArr.splice(index, 1);
+        this.camelRace(id, step);
+      }
+      this.globalState = "wait";
+    },
+    reInitialize() {
+      this.skipInitialize();
+      this.initialize();
+      this.globalState = "wait";
+    },
+    confirmInitialize() {
+      this.globalState = "running";
+    },
     reset() {
       this.choose = "0";
       this.singleForecast = {
@@ -252,15 +366,12 @@ export default {
       } else if (this.choose === "3") {
         this.makeBet();
       } else if (this.choose === "4") {
-        this.trap = [];
-        for (let i = 0; i < 3; i++) {
-          this.trap.push(Math.floor(Math.random() * 3) + 1);
-        }
+        this.setTrap();
       }
       this.reset();
       this.currentPlayer = (this.currentPlayer + 1) % this.playerNum;
 
-      if (this.globalState === "wait") {
+      if (this.globalState === "settling") {
         console.log("阶段结算环节");
         // 奖券结算
         this.lotterySettlement();
@@ -277,7 +388,6 @@ export default {
       }
     },
     comeon() {
-      this.globalState = "running";
       this.dices = [];
       this.diceStates = [];
       for (let i = 0; i < 6; i++) {
@@ -286,6 +396,7 @@ export default {
       this.bet.forEach((item) => {
         item.players = [];
       });
+      this.globalState = "running";
     },
     unveil() {
       this.globalState = "info";
@@ -435,7 +546,7 @@ export default {
       });
       this.dices.splice(index, 1);
       this.camelRace(id, step);
-      if (this.dices.length === 1) this.globalState = "wait";
+      if (this.dices.length === 1) this.globalState = "settling";
     },
     makeForecast() {
       if (
@@ -456,6 +567,13 @@ export default {
     makeBet() {
       if (this.bet[Number(this.singleBet.camelId)].players.length >= 4) return;
       this.bet[Number(this.singleBet.camelId)].players.push(this.currentPlayer);
+    },
+    setTrap() {
+      this.trap.push({
+        type: Number(this.singleTrap.type),
+        playerId: this.currentPlayer,
+        cellId: Number(this.singleTrap.cellId),
+      });
     },
   },
 };
@@ -519,6 +637,15 @@ export default {
 .bet-section {
   height: 50%;
   width: 100%;
+}
+
+.initial-section {
+  height: 50%;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: center;
 }
 
 .choose-section {
