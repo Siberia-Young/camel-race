@@ -30,7 +30,7 @@
           >
           <el-button
             type="warning"
-            @click="reInitialize"
+            @click="initialize"
             v-if="globalState === 'wait'"
             >重新初始化</el-button
           >
@@ -167,7 +167,8 @@
           <el-button type="primary" @click="comeon">继续</el-button>
         </div>
         <div class="finally-section" v-if="globalState === 'finished'">
-          <el-button type="danger" @click="unveil">结束</el-button>
+          <div>冠军：{{ ranking[0] }},垫底：{{ ranking[4] }}</div>
+          <el-button type="primary" @click="again">再来一局</el-button>
         </div>
       </div>
       <div class="right">
@@ -209,7 +210,7 @@ export default {
         "Player 8",
       ],
       playerStates: [],
-      raceMileage: 16,
+      raceMileage: 5,
       raceStates: [],
       camels: ["red", "orange", "blue", "cyan", "purple", "black", "white"],
       camelStates: [],
@@ -237,6 +238,25 @@ export default {
     };
   },
   computed: {
+    ranking() {
+      let rank = [];
+      this.camelStates.slice(0, 5).forEach((camelState, index) => {
+        rank.push({
+          id: index,
+          position: camelState.position,
+        });
+      });
+      rank.sort((a, b) => {
+        if (a.position === b.position) {
+          let pos = a.position;
+          if (pos === -1) return 0;
+          let a_index = this.raceStates[pos].camels.indexOf(a.id);
+          let b_index = this.raceStates[pos].camels.indexOf(b.id);
+          return b_index - a_index;
+        } else return b.position - a.position;
+      });
+      return rank;
+    },
     forecast_disabled() {
       return this.playerStates.length > 0
         ? this.playerStates[this.currentPlayer].forecast.length === 5
@@ -272,6 +292,23 @@ export default {
       else return false;
     },
   },
+  watch: {
+    trap: {
+      handler: function (val) {
+        this.raceStates.forEach((raceState) => {
+          raceState.traps = [];
+        });
+        val.forEach((item) => {
+          this.raceStates[item.cellId].traps.push({
+            type: item.type,
+            playerId: item.playerId,
+            effect: item.effect,
+          });
+        });
+      },
+      deep: true,
+    },
+  },
   mounted() {
     this.playerNames.slice(0, this.playerNum).forEach((playerName, index) => {
       this.playerStates.push({
@@ -282,29 +319,32 @@ export default {
         lotteries: 0,
       });
     });
-    for (let i = 0; i < this.raceMileage; i++) {
-      this.raceStates.push({
-        id: i,
-        camels: [],
-        traps: [],
-      });
-    }
     this.camels.forEach((camel, index) => {
       if (camel === "black" || camel === "white") {
         this.camelStates.push({
           id: index,
           name: camel,
-          position: this.raceMileage,
+          position: this.raceMileage + 1,
           direction: -1,
         });
       } else {
         this.camelStates.push({
           id: index,
           name: camel,
-          position: -1,
+          position: 0,
           direction: 1,
         });
       }
+    });
+    for (let i = 0; i <= this.raceMileage + 1; i++) {
+      this.raceStates.push({
+        id: i,
+        camels: [],
+        traps: [],
+      });
+    }
+    this.camelStates.forEach((camelState) => {
+      this.raceStates[camelState.position].camels.push(camelState.id);
     });
     this.camels.slice(0, 5).forEach((camel) => {
       this.bet.push({ camel: camel, players: [] });
@@ -317,17 +357,21 @@ export default {
     skipInitialize() {
       this.camelStates.forEach((camelState) => {
         if (camelState.name === "black" || camelState.name === "white") {
-          camelState.position = this.raceMileage;
+          camelState.position = this.raceMileage + 1;
         } else {
-          camelState.position = -1;
+          camelState.position = 0;
         }
       });
-      for (let i = 0; i < this.raceMileage; i++) {
+      for (let i = 0; i <= this.raceMileage + 1; i++) {
         this.raceStates[i].camels = [];
       }
+      this.camelStates.forEach((camelState) => {
+        this.raceStates[camelState.position].camels.push(camelState.id);
+      });
       this.globalState = "running";
     },
     initialize() {
+      this.skipInitialize();
       let diceArr = [0, 1, 2, 3, 4, 5, 6];
       for (let i = 0; i < 7; i++) {
         let index = Math.floor(Math.random() * diceArr.length);
@@ -336,11 +380,6 @@ export default {
         diceArr.splice(index, 1);
         this.camelRace(id, step);
       }
-      this.globalState = "wait";
-    },
-    reInitialize() {
-      this.skipInitialize();
-      this.initialize();
       this.globalState = "wait";
     },
     confirmInitialize() {
@@ -356,6 +395,11 @@ export default {
       this.singleBet = {
         playerId: "",
         camelId: "",
+      };
+      this.singleTrap = {
+        type: "",
+        playerId: "",
+        cellId: "",
       };
     },
     submit() {
@@ -377,58 +421,85 @@ export default {
         this.lotterySettlement();
         // 轮注结算
         this.betSettlement();
+        // 陷阱结算
+        this.trapSettlement();
       } else if (this.globalState === "finished") {
         console.log("游戏结束");
         // 奖券结算
         this.lotterySettlement();
         // 轮注结算
         this.betSettlement();
+        // 陷阱结算
+        this.trapSettlement();
         // 结果结算
         this.forecastSettlement();
       }
     },
     comeon() {
+      // 恢复骰子，等待下一轮
       this.dices = [];
       this.diceStates = [];
       for (let i = 0; i < 6; i++) {
         this.dices.push(i);
       }
+      // 恢复奖券，重新开局
+      this.playerStates.forEach((playerState) => {
+        playerState.lotteries = 0;
+      });
+      // 恢复下注，等待下一轮
       this.bet.forEach((item) => {
         item.players = [];
       });
+      // 恢复陷阱，等待下一轮
+      this.trap = [];
+
       this.globalState = "running";
     },
-    unveil() {
-      this.globalState = "info";
-    },
-    rank() {
-      let ranking = [];
-      this.camelStates.slice(0, 5).forEach((camelState, index) => {
-        ranking.push({
-          id: index,
-          position: camelState.position,
-        });
+    again() {
+      // 恢复骰子，重新开局
+      this.dices = [];
+      this.diceStates = [];
+      for (let i = 0; i < 6; i++) {
+        this.dices.push(i);
+      }
+      // 恢复奖券，重新开局
+      this.playerStates.forEach((playerState) => {
+        playerState.lotteries = 0;
       });
-      ranking.sort((a, b) => {
-        if (a.position === b.position) {
-          let pos = a.position;
-          if (pos === -1) return 0;
-          let a_index = this.raceStates[pos].camels.indexOf(a.id);
-          let b_index = this.raceStates[pos].camels.indexOf(b.id);
-          return b_index - a_index;
-        } else return b.position - a.position;
+      // 恢复下注，重新开局
+      this.bet.forEach((item) => {
+        item.players = [];
       });
-      return ranking;
+      // 恢复陷阱，重新开局
+      this.trap = [];
+      // 恢复预测，重新开局
+      this.forecast = [];
+      this.playerStates.forEach((playerState) => {
+        playerState.forecast = [];
+      });
+      // 恢复骆驼，重新开局
+      this.camelStates.forEach((camelState) => {
+        if (camelState.name === "black" || camelState.name === "white") {
+          camelState.position = this.raceMileage + 1;
+        } else {
+          camelState.position = 0;
+        }
+      });
+      for (let i = 0; i <= this.raceMileage + 1; i++) {
+        this.raceStates[i].camels = [];
+      }
+      this.camelStates.forEach((camelState) => {
+        this.raceStates[camelState.position].camels.push(camelState.id);
+      });
+      this.globalState = "initial";
     },
     lotterySettlement() {
       this.playerStates.forEach((playerState) => {
         playerState.money += playerState.lotteries;
-        playerState.lotteries = 0;
       });
     },
     betSettlement() {
-      let ranking = this.rank();
-      let [first, second] = ranking.slice(0, 2);
+      let [first, second] = this.ranking.slice(0, 2);
       this.bet.forEach((item, index) => {
         if (index == first.id) {
           item.players.forEach((playerId, rank) => {
@@ -449,8 +520,10 @@ export default {
       });
     },
     forecastSettlement() {
-      let ranking = this.rank();
-      let [first, last] = [ranking[0], ranking[ranking.length - 1]];
+      let [first, last] = [
+        this.ranking[0],
+        this.ranking[this.ranking.length - 1],
+      ];
       let win = [],
         lose = [],
         error = [];
@@ -479,53 +552,83 @@ export default {
         this.playerStates[error[i]].money -= 1;
       }
     },
+    trapSettlement() {
+      this.trap.forEach((item) => {
+        if (item.effect) this.playerStates[item.playerId].money += 1;
+      });
+    },
     camelRace(id, step) {
+      let index =
+        this.raceStates[this.camelStates[id].position].camels.indexOf(id);
       if (id === 5 || id === 6) {
-        if (this.camelStates[id].position === this.raceMileage) {
+        if (this.camelStates[id].position === this.raceMileage + 1) {
+          this.raceStates[this.camelStates[id].position].camels.splice(
+            index,
+            1
+          );
           this.camelStates[id].position +=
             step * this.camelStates[id].direction;
           this.raceStates[this.camelStates[id].position].camels.push(id);
+          this.trapped(id);
         } else {
-          let index =
-            this.raceStates[this.camelStates[id].position].camels.indexOf(id);
           let arr =
             this.raceStates[this.camelStates[id].position].camels.splice(index);
           for (let i = 0; i < arr.length; i++) {
             this.camelStates[arr[i]].position +=
               step * this.camelStates[id].direction;
           }
-          if (this.camelStates[id].position < 0) {
+          if (this.camelStates[id].position <= 0) {
             for (let i = 0; i < arr.length; i++) {
               this.camelStates[arr[i]].position = 0;
             }
             // return;
           }
           this.raceStates[this.camelStates[id].position].camels.push(...arr);
+          this.trapped(arr[0]);
         }
       } else {
-        if (this.camelStates[id].position === -1) {
+        if (this.camelStates[id].position === 0) {
+          this.raceStates[this.camelStates[id].position].camels.splice(
+            index,
+            1
+          );
           this.camelStates[id].position +=
             step * this.camelStates[id].direction;
           this.raceStates[this.camelStates[id].position].camels.push(id);
+          this.trapped(id);
         } else {
-          let index =
-            this.raceStates[this.camelStates[id].position].camels.indexOf(id);
           let arr =
             this.raceStates[this.camelStates[id].position].camels.splice(index);
           for (let i = 0; i < arr.length; i++) {
             this.camelStates[arr[i]].position +=
               step * this.camelStates[id].direction;
           }
-          if (this.camelStates[id].position >= this.raceMileage) {
+          if (this.camelStates[id].position >= this.raceMileage + 1) {
             for (let i = 0; i < arr.length; i++) {
-              this.camelStates[arr[i]].position = this.raceMileage - 1;
+              this.camelStates[arr[i]].position = this.raceMileage + 1;
             }
             this.globalState = "finished";
             // return;
           }
           this.raceStates[this.camelStates[id].position].camels.push(...arr);
+          this.trapped(arr[0]);
         }
       }
+    },
+    trapped(id) {
+      let position = this.camelStates[id].position;
+      let move = 0;
+      let arr = this.trap.filter((item) => {
+        if (item.cellId === position && !item.effect) {
+          move += item.type;
+          item.effect = true;
+          return true;
+        }
+        return false;
+      });
+      if (arr.length === 0) return false;
+      this.camelRace(id, move);
+      return true;
     },
     rollDice() {
       if (this.dices.length === 1) return;
@@ -546,7 +649,8 @@ export default {
       });
       this.dices.splice(index, 1);
       this.camelRace(id, step);
-      if (this.dices.length === 1) this.globalState = "settling";
+      if (this.dices.length === 1 && this.globalState === "running")
+        this.globalState = "settling";
     },
     makeForecast() {
       if (
@@ -573,6 +677,7 @@ export default {
         type: Number(this.singleTrap.type),
         playerId: this.currentPlayer,
         cellId: Number(this.singleTrap.cellId),
+        effect: false,
       });
     },
   },
