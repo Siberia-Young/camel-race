@@ -16,3 +16,9 @@ This is a project that simulates the board game "Camel Race".
 
 1. 补充玩家操作面板的陷阱操作
 2. 完成初始化状态、等待开始状态
+
+## version 0.2.0
+
+1. 完善陷阱操作的整个流程
+2. 改善赛道长度，增加起点和终点
+3. 增加再来一局操作
