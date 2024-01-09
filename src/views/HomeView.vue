@@ -167,7 +167,9 @@
           <el-button type="primary" @click="comeon">继续</el-button>
         </div>
         <div class="finally-section" v-if="globalState === 'finished'">
-          <div>冠军：{{ ranking[0] }},垫底：{{ ranking[4] }}</div>
+          <!-- 这里的ranking明明是对象，为什么取不出属性id，请回答 -->
+          <div>{{ camels[ranking[0]] }}骆驼率先冲线，游戏结束！</div>
+          <div>冠军：{{ camels[ranking[0]] }}骆驼，垫底：{{ camels[ranking[4]] }}骆驼</div>
           <el-button type="primary" @click="again">再来一局</el-button>
         </div>
       </div>
@@ -196,7 +198,7 @@ export default {
   },
   data() {
     return {
-      globalState: "initial", //info,initial,wait,running,settling,finished
+      globalState: "finished", //info,initial,wait,running,settling,finished
       playerNum: 8,
       currentPlayer: 0,
       playerNames: [
@@ -212,7 +214,7 @@ export default {
       playerStates: [],
       raceMileage: 5,
       raceStates: [],
-      camels: ["red", "orange", "blue", "cyan", "purple", "black", "white"],
+      camels: ["红色", "橙色", "蓝色", "青色", "紫色", "黑色", "白色"],
       camelStates: [],
       forecast: [],
       bet: [],
@@ -255,7 +257,7 @@ export default {
           return b_index - a_index;
         } else return b.position - a.position;
       });
-      return rank;
+      return rank.map((item) => item.id);
     },
     forecast_disabled() {
       return this.playerStates.length > 0
@@ -304,6 +306,17 @@ export default {
             playerId: item.playerId,
             effect: item.effect,
           });
+        });
+      },
+      deep: true,
+    },
+    forecast: {
+      handler: function (val) {
+        this.playerStates.forEach((playerState) => {
+          playerState.forecast = [];
+        });
+        val.forEach((item) => {
+          this.playerStates[item.playerId].forecast.push(item.camelId);
         });
       },
       deep: true,
@@ -442,7 +455,7 @@ export default {
       for (let i = 0; i < 6; i++) {
         this.dices.push(i);
       }
-      // 恢复奖券，重新开局
+      // 恢复奖券，等待下一轮
       this.playerStates.forEach((playerState) => {
         playerState.lotteries = 0;
       });
@@ -472,11 +485,14 @@ export default {
       });
       // 恢复陷阱，重新开局
       this.trap = [];
+      // 恢复次序，重新开局
+      this.currentPlayer = 0;
+      // 恢复金币，重新开局
+      this.playerStates.forEach((playerState) => {
+        playerState.money = 3;
+      });
       // 恢复预测，重新开局
       this.forecast = [];
-      this.playerStates.forEach((playerState) => {
-        playerState.forecast = [];
-      });
       // 恢复骆驼，重新开局
       this.camelStates.forEach((camelState) => {
         if (camelState.name === "black" || camelState.name === "white") {
@@ -501,14 +517,14 @@ export default {
     betSettlement() {
       let [first, second] = this.ranking.slice(0, 2);
       this.bet.forEach((item, index) => {
-        if (index == first.id) {
+        if (index == first) {
           item.players.forEach((playerId, rank) => {
             if (rank == 0) this.playerStates[playerId].money += 5;
             else if (rank == 1) this.playerStates[playerId].money += 3;
             else if (rank == 2) this.playerStates[playerId].money += 2;
             else if (rank == 3) this.playerStates[playerId].money += 2;
           });
-        } else if (index == second.id) {
+        } else if (index == second) {
           item.players.forEach((playerId) => {
             this.playerStates[playerId].money += 1;
           });
@@ -528,9 +544,9 @@ export default {
         lose = [],
         error = [];
       this.forecast.forEach((item) => {
-        if (item.type === "win" && item.camelId === first.id)
+        if (item.type === "win" && item.camelId === first)
           win.push(item.playerId);
-        else if (item.type === "lose" && item.camelId === last.id)
+        else if (item.type === "lose" && item.camelId === last)
           lose.push(item.playerId);
         else error.push(item.playerId);
       });
@@ -659,9 +675,6 @@ export default {
         )
       )
         return;
-      this.playerStates[this.currentPlayer].forecast.push(
-        Number(this.singleForecast.camelId)
-      );
       this.forecast.push({
         type: this.singleForecast.type,
         playerId: this.currentPlayer,
