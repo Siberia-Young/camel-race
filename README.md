@@ -22,3 +22,12 @@ This is a project that simulates the board game "Camel Race".
 1. 完善陷阱操作的整个流程
 2. 改善赛道长度，增加起点和终点
 3. 增加再来一局操作
+
+## version 0.2.1
+
+1. 修正再来一局流程中的错误
+2. 丰富结束状态展示内容
+
+## version 0.2.2
+
+1. 增添自定义人数和玩家昵称功能

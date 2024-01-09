@@ -1,5 +1,28 @@
 <template>
   <div class="home-view">
+    <div class="info-section" v-if="this.globalState === 'info'">
+      <el-text class="game-title" size="large">骆驼大赛</el-text>
+      <div class="player-num">
+        <el-text size="large">请选择人数：</el-text>
+        <el-select v-model="playerNum" placeholder="请选人数" size="large">
+          <el-option
+            v-for="item in Array.from({ length: 6 }, (_, index) => index + 3)"
+            :key="item"
+            :label="Number(item)"
+            :value="item"
+          />
+        </el-select>
+      </div>
+      <div class="player-name">
+        <el-text size="large">请输入玩家昵称（用“、”隔开）：</el-text>
+        <el-input
+          type="textarea"
+          autosize
+          v-model="customizePlayerNamesStr"
+        ></el-input>
+      </div>
+      <el-button type="primary" @click="next">继续</el-button>
+    </div>
     <div class="top">
       <RaceSection class="race-section" :raceStates="raceStates" />
     </div>
@@ -23,16 +46,11 @@
             >跳过初始化</el-button
           >
           <el-button
-            type="primary"
+            :type="globalState === 'initial' ? 'primary' : 'warning'"
             @click="initialize"
-            v-if="globalState === 'initial'"
-            >初始化</el-button
-          >
-          <el-button
-            type="warning"
-            @click="initialize"
-            v-if="globalState === 'wait'"
-            >重新初始化</el-button
+            >{{
+              globalState === "initial" ? "初始化" : "重新初始化"
+            }}</el-button
           >
           <el-button
             type="primary"
@@ -153,7 +171,9 @@
             </el-radio>
           </el-radio-group>
           <el-button-group class="operate">
-            <div class="current-player">{{ playerNames[currentPlayer] }}</div>
+            <div class="current-player">
+              {{ playerNames[currentPlayer] }}
+            </div>
             <el-button type="danger" @click="reset">重置</el-button>
             <el-button
               type="primary"
@@ -169,7 +189,11 @@
         <div class="finally-section" v-if="globalState === 'finished'">
           <!-- 这里的ranking明明是对象，为什么取不出属性id，请回答 -->
           <div>{{ camels[ranking[0]] }}骆驼率先冲线，游戏结束！</div>
-          <div>冠军：{{ camels[ranking[0]] }}骆驼，垫底：{{ camels[ranking[4]] }}骆驼</div>
+          <div>
+            冠军：{{ camels[ranking[0]] }}骆驼，垫底：{{
+              camels[ranking[4]]
+            }}骆驼
+          </div>
           <el-button type="primary" @click="again">再来一局</el-button>
         </div>
       </div>
@@ -198,10 +222,12 @@ export default {
   },
   data() {
     return {
-      globalState: "finished", //info,initial,wait,running,settling,finished
-      playerNum: 8,
+      globalState: "info", //info,initial,wait,running,settling,finished
+      playerNum: 3,
       currentPlayer: 0,
-      playerNames: [
+      customizePlayerNamesStr: "",
+      customizePlayerNames: [],
+      defaultPlayerNames: [
         "Player 1",
         "Player 2",
         "Player 3",
@@ -240,6 +266,11 @@ export default {
     };
   },
   computed: {
+    playerNames() {
+      return this.customizePlayerNames.length === 0
+        ? this.defaultPlayerNames
+        : this.customizePlayerNames;
+    },
     ranking() {
       let rank = [];
       this.camelStates.slice(0, 5).forEach((camelState, index) => {
@@ -295,6 +326,15 @@ export default {
     },
   },
   watch: {
+    customizePlayerNamesStr: {
+      handler: function (val) {
+        this.customizePlayerNames = val
+          .split(/[、,;，；]/)
+          .map((item) => item.trim())
+          .filter((item) => item != "");
+      },
+      deep: true,
+    },
     trap: {
       handler: function (val) {
         this.raceStates.forEach((raceState) => {
@@ -322,51 +362,56 @@ export default {
       deep: true,
     },
   },
-  mounted() {
-    this.playerNames.slice(0, this.playerNum).forEach((playerName, index) => {
-      this.playerStates.push({
-        id: index,
-        name: playerName,
-        money: 3,
-        forecast: [],
-        lotteries: 0,
-      });
-    });
-    this.camels.forEach((camel, index) => {
-      if (camel === "black" || camel === "white") {
-        this.camelStates.push({
+  mounted() {},
+  methods: {
+    init() {
+      this.playerNames.slice(0, this.playerNum).forEach((playerName, index) => {
+        this.playerStates.push({
           id: index,
-          name: camel,
-          position: this.raceMileage + 1,
-          direction: -1,
+          name: playerName,
+          money: 3,
+          forecast: [],
+          lotteries: 0,
         });
-      } else {
-        this.camelStates.push({
-          id: index,
-          name: camel,
-          position: 0,
-          direction: 1,
+      });
+      this.camels.forEach((camel, index) => {
+        if (camel === "black" || camel === "white") {
+          this.camelStates.push({
+            id: index,
+            name: camel,
+            position: this.raceMileage + 1,
+            direction: -1,
+          });
+        } else {
+          this.camelStates.push({
+            id: index,
+            name: camel,
+            position: 0,
+            direction: 1,
+          });
+        }
+      });
+      for (let i = 0; i <= this.raceMileage + 1; i++) {
+        this.raceStates.push({
+          id: i,
+          camels: [],
+          traps: [],
         });
       }
-    });
-    for (let i = 0; i <= this.raceMileage + 1; i++) {
-      this.raceStates.push({
-        id: i,
-        camels: [],
-        traps: [],
+      this.camelStates.forEach((camelState) => {
+        this.raceStates[camelState.position].camels.push(camelState.id);
       });
-    }
-    this.camelStates.forEach((camelState) => {
-      this.raceStates[camelState.position].camels.push(camelState.id);
-    });
-    this.camels.slice(0, 5).forEach((camel) => {
-      this.bet.push({ camel: camel, players: [] });
-    });
-    for (let i = 0; i < 6; i++) {
-      this.dices.push(i);
-    }
-  },
-  methods: {
+      this.camels.slice(0, 5).forEach((camel) => {
+        this.bet.push({ camel: camel, players: [] });
+      });
+      for (let i = 0; i < 6; i++) {
+        this.dices.push(i);
+      }
+    },
+    next() {
+      this.globalState = "initial";
+      this.init();
+    },
     skipInitialize() {
       this.camelStates.forEach((camelState) => {
         if (camelState.name === "black" || camelState.name === "white") {
@@ -705,6 +750,54 @@ export default {
   flex-direction: column;
   justify-content: space-evenly;
   background-color: #eedfbb;
+}
+
+.info-section {
+  height: 100%;
+  aspect-ratio: 1.75 / 1;
+  max-width: 100vw;
+  max-height: 56.25vw;
+  position: fixed;
+  z-index: 1;
+  background-color: #eedfbb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.game-title {
+  font-size: 8vh;
+}
+
+.player-num {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.player-num .el-text {
+  font-size: 3vh;
+}
+
+.player-num .el-select {
+  width: 8vw;
+}
+
+.player-name {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
+.player-name .el-text {
+  font-size: 3vh;
+}
+
+.player-name .el-input {
+  width: 30vw;
 }
 
 .top {
