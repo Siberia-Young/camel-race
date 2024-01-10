@@ -1,13 +1,27 @@
 <template>
   <div class="forecast-section">
-    <el-scrollbar class="win-forecast">
+    <el-text class="title" size="large">冠军</el-text>
+    <el-scrollbar class="forecast-show">
       <div v-for="(item, index) in winForecast" :key="index">
-        {{ item }}
+        <el-text>
+          {{ playerNames[item.playerId] }}预测
+          <span :style="{ color: colors[item.camelId] }">
+            {{ camels[item.camelId] }}骆驼
+          </span>
+          是冠军
+        </el-text>
       </div>
     </el-scrollbar>
-    <el-scrollbar class="lose-forecast">
+    <el-text class="title" size="large">垫底</el-text>
+    <el-scrollbar class="forecast-show">
       <div v-for="(item, index) in loseForecast" :key="index">
-        {{ item }}
+        <el-text>
+          {{ playerNames[item.playerId] }}预测
+          <span :style="{ color: colors[item.camelId] }">
+            {{ camels[item.camelId] }}骆驼
+          </span>
+          是垫底
+        </el-text>
       </div>
     </el-scrollbar>
   </div>
@@ -22,6 +36,18 @@ export default {
   },
   props: {
     forecast: {
+      type: Array,
+      required: true,
+    },
+    playerNames: {
+      type: Array,
+      required: true,
+    },
+    camels: {
+      type: Array,
+      required: true,
+    },
+    colors: {
       type: Array,
       required: true,
     },
@@ -48,16 +74,18 @@ export default {
   border: 1px solid black;
 }
 
-.forecast-section .win-forecast {
-  height: 50%;
+.forecast-section .title {
+  height: 5%;
   width: 100%;
   display: flex;
-  flex-direction: column;
-  border: 1px solid black;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.5vh;
 }
 
-.forecast-section .lose-forecast {
-  height: 50%;
+.forecast-section .forecast-show {
+  height: 45%;
   width: 100%;
   display: flex;
   flex-direction: column;
