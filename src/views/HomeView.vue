@@ -1,42 +1,81 @@
 <template>
   <div class="home-view">
     <div class="info-section" v-if="this.globalState === 'info'">
-      <el-text class="game-title" size="large">骆驼大赛</el-text>
-      <div class="player-num">
-        <el-text size="large">请选择人数：</el-text>
-        <el-select v-model="playerNum" placeholder="请选人数" size="large">
-          <el-option
-            v-for="item in Array.from({ length: 6 }, (_, index) => index + 3)"
-            :key="item"
-            :label="Number(item)"
-            :value="item"
-          />
-        </el-select>
+      <div class="info-show">
+        <el-text class="game-title" size="large"></el-text>
+        <div class="info-input">
+          <div class="player-num">
+            <el-text size="large">请选择人数：</el-text>
+            <el-select v-model="playerNum" placeholder="请选人数" size="large">
+              <el-option
+                v-for="item in Array.from(
+                  { length: 7 },
+                  (_, index) => index + 2
+                )"
+                :key="item"
+                :label="Number(item)"
+                :value="item"
+              />
+            </el-select>
+          </div>
+          <el-radio-group class="player-name" v-model="customizeOrNot">
+            <div><el-text>请设置玩家昵称：</el-text></div>
+            <el-radio class="custom-radio" :label="true" border>
+              <el-text size="large">自定义：</el-text>
+            </el-radio>
+            <el-input
+              type="textarea"
+              :autosize="{ minRows: 1, maxRows: 8 }"
+              :rows="3"
+              resize="none"
+              :placeholder="'请输入' + playerNum + '个玩家昵称（用“、”隔开）'"
+              v-model="customizePlayerNamesStr"
+              :disabled="!customizeOrNot"
+            >
+            </el-input>
+            <div class="el-text-box">
+              <el-text type="warning" v-show="repeat_prompt">
+                自定义昵称中有重复的，请修改！
+              </el-text>
+            </div>
+            <el-radio class="custom-radio" :label="false" border>
+              <el-text size="large">默认</el-text>
+            </el-radio>
+            <div class="el-text-box">
+              <el-text type="info"> 默认昵称为：玩家1、玩家2、玩家3…… </el-text>
+            </div>
+          </el-radio-group>
+        </div>
+        <div class="next-box">
+          <el-button type="primary" round @click="next" :disabled="next_able">
+            继续
+          </el-button>
+        </div>
       </div>
-      <div class="player-name">
-        <el-text size="large">请输入玩家昵称（用“、”隔开）：</el-text>
-        <el-input
-          type="textarea"
-          autosize
-          v-model="customizePlayerNamesStr"
-        ></el-input>
+      <div class="rules">
+        <el-text class="rules-title">桌游规则</el-text>
       </div>
-      <el-button type="primary" @click="next">继续</el-button>
     </div>
     <div class="top">
-      <RaceSection class="race-section" :raceStates="raceStates" />
+      <RaceSection
+        class="race-section"
+        :raceStates="raceStates"
+        :camels="camels"
+        :colors="colors"
+      />
     </div>
     <div class="bottom">
       <div class="left">
         <AudienceSection
           class="audience-section"
           :playerStates="playerStates"
+          :playerNames="playerNames"
         />
       </div>
       <div class="middle">
         <BetSection class="bet-section" :bet="bet" />
         <div
-          class="initial-section"
+          class="control-section initial-section"
           v-if="globalState === 'initial' || globalState === 'wait'"
         >
           <el-button
@@ -56,137 +95,163 @@
             type="primary"
             @click="confirmInitialize"
             v-if="globalState === 'wait'"
-            >继续</el-button
           >
+            继续
+          </el-button>
         </div>
-        <div class="choose-section" v-if="globalState === 'running'">
+        <div
+          class="control-section choose-section"
+          v-if="globalState === 'running'"
+        >
           <el-radio-group class="choose" v-model="choose">
-            <el-radio class="choose-item" label="1" border>
-              <div class="dice">骰子</div>
-            </el-radio>
-            <el-radio
-              class="choose-item"
-              label="2"
-              border
-              :disabled="forecast_disabled"
-            >
-              <div class="forecast">
-                预测
-                <div class="choose-item-info">
-                  预测1:
-                  <el-radio-group
-                    v-model="singleForecast.type"
-                    :disabled="forecast_disabled || choose != '2'"
-                  >
-                    <el-radio label="win">冠军</el-radio>
-                    <el-radio label="lose">垫底</el-radio>
-                  </el-radio-group>
-                </div>
-                <div class="choose-item-info">
-                  预测2:
-                  <el-radio-group
-                    v-model="singleForecast.camelId"
-                    :disabled="forecast_disabled || choose != '2'"
-                  >
-                    <el-radio
-                      v-for="(camel, index) in camels.slice(0, 5)"
-                      :key="index"
-                      :label="index.toString()"
-                      :disabled="
-                        playerStates.length > 0
-                          ? playerStates[currentPlayer].forecast.includes(index)
-                          : false
-                      "
-                      >{{ camel }}</el-radio
+            <div class="choose-item">
+              <div class="choose-title"><el-text>骰子</el-text></div>
+              <el-radio label="1" border>
+                <el-text class="dice">骰子</el-text>
+              </el-radio>
+            </div>
+            <div class="choose-item">
+              <div class="choose-title"><el-text>预测</el-text></div>
+              <el-radio
+                class="choose-item"
+                label="2"
+                border
+                :disabled="forecast_disabled"
+              >
+                <div class="forecast">
+                  <div class="choose-item-info">
+                    <el-text>预测类型:</el-text>
+                    <el-radio-group
+                      v-model="singleForecast.type"
+                      :disabled="forecast_disabled || choose != '2'"
                     >
-                  </el-radio-group>
-                </div>
-              </div>
-            </el-radio>
-            <el-radio
-              class="choose-item"
-              label="3"
-              border
-              :disabled="bet_disabled"
-            >
-              <div class="bet">
-                下注
-                <div class="choose-item-info">
-                  下注1:
-                  <el-radio-group
-                    v-model="singleBet.camelId"
-                    :disabled="bet_disabled || choose != '3'"
-                  >
-                    <el-radio
-                      v-for="(camel, index) in camels.slice(0, 5)"
-                      :key="index"
-                      :label="index.toString()"
-                      :disabled="
-                        bet.length > 0 ? bet[index].players.length >= 4 : false
-                      "
-                      >{{ camel }}</el-radio
+                      <el-radio-button label="win">冠军</el-radio-button>
+                      <el-radio-button label="lose">垫底</el-radio-button>
+                    </el-radio-group>
+                  </div>
+                  <div class="choose-item-info">
+                    <el-text>骆驼颜色:</el-text>
+                    <el-radio-group
+                      v-model="singleForecast.camelId"
+                      :disabled="forecast_disabled || choose != '2'"
                     >
-                  </el-radio-group>
+                      <el-radio-button
+                        v-for="(camel, index) in camels.slice(0, 5)"
+                        :key="index"
+                        :label="index.toString()"
+                        :disabled="
+                          playerStates.length > 0
+                            ? playerStates[currentPlayer].forecast.includes(
+                                index
+                              )
+                            : false
+                        "
+                      >
+                        {{ camel }}
+                      </el-radio-button>
+                    </el-radio-group>
+                  </div>
                 </div>
-              </div>
-            </el-radio>
-            <el-radio
-              class="choose-item"
-              label="4"
-              border
-              :disabled="trap_disabled"
-            >
-              <div class="trap">
-                陷阱
-                <div class="choose-item-info">
-                  陷阱1:
-                  <el-select
-                    v-model="singleTrap.cellId"
-                    placeholder="请选位置"
-                    size="small"
-                    :disabled="trap_disabled || choose != '4'"
-                  >
-                    <el-option
-                      v-for="item in Array.from(
-                        { length: this.raceMileage },
-                        (_, index) => index + 1
-                      )"
-                      :key="item"
-                      :label="item"
-                      :value="item"
-                    />
-                  </el-select>
+              </el-radio>
+            </div>
+            <div class="choose-item">
+              <div class="choose-title"><el-text>下注</el-text></div>
+              <el-radio
+                class="choose-item"
+                label="3"
+                border
+                :disabled="bet_disabled"
+              >
+                <div class="bet">
+                  <div class="choose-item-info">
+                    <el-text>骆驼颜色:</el-text>
+                    <el-radio-group
+                      v-model="singleBet.camelId"
+                      :disabled="bet_disabled || choose != '3'"
+                    >
+                      <el-radio-button
+                        v-for="(camel, index) in camels.slice(0, 5)"
+                        :key="index"
+                        :label="index.toString()"
+                        :disabled="
+                          bet.length > 0
+                            ? bet[index].players.length >= 4
+                            : false
+                        "
+                      >
+                        {{ camel }}
+                      </el-radio-button>
+                    </el-radio-group>
+                  </div>
                 </div>
-                <div class="choose-item-info">
-                  陷阱2:
-                  <el-radio-group
-                    v-model="singleTrap.type"
-                    :disabled="trap_disabled || choose != '4'"
-                  >
-                    <el-radio label="+1">+1</el-radio>
-                    <el-radio label="-1">-1</el-radio>
-                  </el-radio-group>
+              </el-radio>
+            </div>
+            <div class="choose-item">
+              <div class="choose-title"><el-text>陷阱</el-text></div>
+              <el-radio
+                class="choose-item"
+                label="4"
+                border
+                :disabled="trap_disabled"
+              >
+                <div class="trap">
+                  <div class="choose-item-info">
+                    <el-text>陷阱位置:</el-text>
+                    <el-select
+                      v-model="singleTrap.cellId"
+                      placeholder="请选位置"
+                      size="small"
+                      :disabled="trap_disabled || choose != '4'"
+                    >
+                      <el-option
+                        v-for="item in Array.from(
+                          { length: this.raceMileage },
+                          (_, index) => index + 1
+                        )"
+                        :key="item"
+                        :label="item"
+                        :value="item"
+                      />
+                    </el-select>
+                  </div>
+                  <div class="choose-item-info">
+                    <el-text>陷阱类型:</el-text>
+                    <el-radio-group
+                      v-model="singleTrap.type"
+                      :disabled="trap_disabled || choose != '4'"
+                    >
+                      <el-radio-button label="+1">+1</el-radio-button>
+                      <el-radio-button label="-1">-1</el-radio-button>
+                    </el-radio-group>
+                  </div>
                 </div>
-              </div>
-            </el-radio>
+              </el-radio>
+            </div>
           </el-radio-group>
           <el-button-group class="operate">
             <div class="current-player">
-              {{ playerNames[currentPlayer] }}
+              当前玩家：{{ playerNames[currentPlayer] }}
             </div>
             <el-button type="danger" @click="reset">重置</el-button>
             <el-button
               type="primary"
               @click="submit"
               :disabled="submit_disabled"
-              >提交</el-button
             >
+              提交
+            </el-button>
           </el-button-group>
         </div>
-        <div class="phased-section" v-if="globalState === 'settling'">
+        <div
+          class="control-section phased-section"
+          v-if="globalState === 'settling'"
+        >
           <el-button type="primary" @click="comeon">继续</el-button>
         </div>
-        <div class="finally-section" v-if="globalState === 'finished'">
+        <div
+          class="control-section finally-section"
+          v-if="globalState === 'finished'"
+        >
           <!-- 这里的ranking明明是对象，为什么取不出属性id，请回答 -->
           <div>{{ camels[ranking[0]] }}骆驼率先冲线，游戏结束！</div>
           <div>
@@ -198,8 +263,20 @@
         </div>
       </div>
       <div class="right">
-        <ForecastSection class="forecast-section" :forecast="forecast" />
-        <DiceSection class="dice-section" :diceStates="diceStates" />
+        <DiceSection
+          class="dice-section"
+          :diceStates="diceStates"
+          :playerNames="playerNames"
+          :camels="camels"
+          :colors="colors"
+        />
+        <ForecastSection
+          class="forecast-section"
+          :forecast="forecast"
+          :playerNames="playerNames"
+          :camels="camels"
+          :colors="colors"
+        />
       </div>
     </div>
   </div>
@@ -222,25 +299,35 @@ export default {
   },
   data() {
     return {
-      globalState: "info", //info,initial,wait,running,settling,finished
-      playerNum: 3,
+      globalState: "running", //info,initial,wait,running,settling,finished
+      playerNum: 8,
       currentPlayer: 0,
+      customizeOrNot: false,
       customizePlayerNamesStr: "",
       customizePlayerNames: [],
       defaultPlayerNames: [
-        "Player 1",
-        "Player 2",
-        "Player 3",
-        "Player 4",
-        "Player 5",
-        "Player 6",
-        "Player 7",
-        "Player 8",
+        "玩家1",
+        "玩家2",
+        "玩家3",
+        "玩家4",
+        "玩家5",
+        "玩家6",
+        "玩家7",
+        "玩家8",
       ],
       playerStates: [],
-      raceMileage: 5,
+      raceMileage: 16,
       raceStates: [],
       camels: ["红色", "橙色", "蓝色", "青色", "紫色", "黑色", "白色"],
+      colors: [
+        "#FF331D",
+        "#EDA552",
+        "#53A7E7",
+        "#53E6B7",
+        "#CC6DFC",
+        "#000000",
+        "#ffffff",
+      ],
       camelStates: [],
       forecast: [],
       bet: [],
@@ -266,10 +353,30 @@ export default {
     };
   },
   computed: {
+    repeat_prompt() {
+      if (this.customizeOrNot) {
+        let set = new Set(this.customizePlayerNames);
+        return set.size !== this.customizePlayerNames.length;
+      } else {
+        return false;
+      }
+    },
+    next_able() {
+      if (this.customizeOrNot) {
+        return (
+          this.customizePlayerNames.length < this.playerNum ||
+          this.repeat_prompt
+        );
+      } else {
+        return false;
+      }
+    },
     playerNames() {
-      return this.customizePlayerNames.length === 0
-        ? this.defaultPlayerNames
-        : this.customizePlayerNames;
+      if (this.customizeOrNot) {
+        return this.customizePlayerNames.slice(0, this.playerNum);
+      } else {
+        return this.defaultPlayerNames.slice(0, this.playerNum);
+      }
     },
     ranking() {
       let rank = [];
@@ -362,10 +469,37 @@ export default {
       deep: true,
     },
   },
-  mounted() {},
+  mounted() {
+    this.init();
+  },
   methods: {
     init() {
-      this.playerNames.slice(0, this.playerNum).forEach((playerName, index) => {
+      this.currentPlayer = 0;
+      this.playerStates = [];
+      this.raceStates = [];
+      this.camelStates = [];
+      this.forecast = [];
+      this.bet = [];
+      this.trap = [];
+      this.dices = [];
+      this.diceStates = [];
+      this.choose = "0";
+      this.singleForecast = {
+        type: "",
+        playerId: "",
+        camelId: "",
+      };
+      this.singleBet = {
+        playerId: "",
+        camelId: "",
+      };
+      this.singleTrap = {
+        type: "",
+        playerId: "",
+        cellId: "",
+      };
+
+      this.playerNames.forEach((playerName, index) => {
         this.playerStates.push({
           id: index,
           name: playerName,
@@ -375,7 +509,7 @@ export default {
         });
       });
       this.camels.forEach((camel, index) => {
-        if (camel === "black" || camel === "white") {
+        if (index === 5 || index === 6) {
           this.camelStates.push({
             id: index,
             name: camel,
@@ -409,12 +543,13 @@ export default {
       }
     },
     next() {
-      this.globalState = "initial";
       this.init();
+      // console.log(this.$data);
+      this.globalState = "initial";
     },
     skipInitialize() {
       this.camelStates.forEach((camelState) => {
-        if (camelState.name === "black" || camelState.name === "white") {
+        if (camelState.id === 5 || camelState.id === 6) {
           camelState.position = this.raceMileage + 1;
         } else {
           camelState.position = 0;
@@ -514,44 +649,8 @@ export default {
       this.globalState = "running";
     },
     again() {
-      // 恢复骰子，重新开局
-      this.dices = [];
-      this.diceStates = [];
-      for (let i = 0; i < 6; i++) {
-        this.dices.push(i);
-      }
-      // 恢复奖券，重新开局
-      this.playerStates.forEach((playerState) => {
-        playerState.lotteries = 0;
-      });
-      // 恢复下注，重新开局
-      this.bet.forEach((item) => {
-        item.players = [];
-      });
-      // 恢复陷阱，重新开局
-      this.trap = [];
-      // 恢复次序，重新开局
-      this.currentPlayer = 0;
-      // 恢复金币，重新开局
-      this.playerStates.forEach((playerState) => {
-        playerState.money = 3;
-      });
-      // 恢复预测，重新开局
-      this.forecast = [];
-      // 恢复骆驼，重新开局
-      this.camelStates.forEach((camelState) => {
-        if (camelState.name === "black" || camelState.name === "white") {
-          camelState.position = this.raceMileage + 1;
-        } else {
-          camelState.position = 0;
-        }
-      });
-      for (let i = 0; i <= this.raceMileage + 1; i++) {
-        this.raceStates[i].camels = [];
-      }
-      this.camelStates.forEach((camelState) => {
-        this.raceStates[camelState.position].camels.push(camelState.id);
-      });
+      this.init();
+      // console.log(this.$data);
       this.globalState = "initial";
     },
     lotterySettlement() {
@@ -705,7 +804,7 @@ export default {
       this.diceStates.push({
         id: id,
         playerId: this.currentPlayer,
-        color: this.camels[this.dices[index]],
+        color: this.camels[id],
         step: step,
       });
       this.dices.splice(index, 1);
@@ -750,6 +849,7 @@ export default {
   flex-direction: column;
   justify-content: space-evenly;
   background-color: #eedfbb;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .info-section {
@@ -761,47 +861,127 @@ export default {
   z-index: 1;
   background-color: #eedfbb;
   display: flex;
-  flex-direction: column;
-  justify-content: space-evenly;
-  align-items: center;
-}
-
-.game-title {
-  font-size: 8vh;
-}
-
-.player-num {
-  display: flex;
   flex-direction: row;
   justify-content: space-evenly;
   align-items: center;
 }
 
-.player-num .el-text {
-  font-size: 3vh;
+.info-show {
+  height: 100%;
+  width: 60%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
 }
 
-.player-num .el-select {
-  width: 8vw;
+.info-show .game-title {
+  height: 30%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 8vh;
 }
 
-.player-name {
+.info-show .info-input {
+  height: 60%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
   align-items: center;
 }
 
-.player-name .el-text {
+.info-show .player-num {
+  height: 15%;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.info-show .player-num .el-text {
+  font-size: 3.8vh;
+}
+
+.info-show .player-num .el-select {
+  width: 8vw;
+}
+
+.info-show .player-name {
+  height: 85%;
+  width: 60%;
+  padding: 0 20%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.info-show .player-name > * .el-text {
   font-size: 3vh;
 }
 
-.player-name .el-input {
+.info-show .player-name > *:nth-child(1) {
+  margin: 3% 0;
+}
+
+.info-show .player-name > *:nth-child(1) .el-text {
+  font-size: 3.8vh;
+}
+
+.info-show .player-name .el-input {
   width: 30vw;
 }
 
+.info-show .player-name .el-text-box .el-text {
+  font-size: 2.25vh;
+}
+
+.info-show .next-box {
+  height: 10%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.info-show .next-box .el-button {
+  width: 20%;
+  height: 65%;
+  font-size: 3vh;
+}
+
+.custom-radio {
+  border-color: transparent !important;
+}
+
+.rules {
+  height: 100%;
+  width: 40%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  border: 1px solid black;
+}
+
+.rules-title {
+  height: 10%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 4.5vh;
+}
+
 .top {
-  height: 20%;
+  height: 30%;
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -810,7 +990,7 @@ export default {
 }
 
 .bottom {
-  height: 80%;
+  height: 70%;
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -820,7 +1000,7 @@ export default {
 
 .left {
   height: 100%;
-  width: 20%;
+  width: 15%;
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
@@ -829,7 +1009,7 @@ export default {
 
 .middle {
   height: 100%;
-  width: 60%;
+  width: 70%;
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
@@ -838,7 +1018,7 @@ export default {
 
 .right {
   height: 100%;
-  width: 20%;
+  width: 15%;
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
@@ -846,13 +1026,16 @@ export default {
 }
 
 .bet-section {
-  height: 50%;
+  height: 35%;
+  width: 100%;
+}
+
+.control-section {
+  height: 65%;
   width: 100%;
 }
 
 .initial-section {
-  height: 50%;
-  width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: space-evenly;
@@ -860,11 +1043,9 @@ export default {
 }
 
 .choose-section {
-  height: 50%;
-  width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
+  justify-content: center;
   align-items: center;
 }
 
@@ -873,18 +1054,74 @@ export default {
   width: 100%;
   display: flex;
   flex-direction: row;
-  justify-content: space-evenly;
+  justify-content: center;
   align-items: center;
   flex-wrap: nowrap;
-  border: 1px solid black;
 }
 
 .choose-section .choose-item {
-  height: 100%;
-  width: 25%;
+  height: 96%;
+  width: 24%;
+  margin: 2% 0.5%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #b1b1b1;
+  border-radius: 1.2vh;
+}
+
+.choose-item-info {
+  width: 100%;
   display: flex;
   flex-direction: row;
-  border: 1px solid black;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 5% 0;
+}
+
+.choose-item-info .el-text {
+  font-size: 2vh;
+  margin-right: 5%;
+}
+
+.choose-section .choose-item:nth-child(1) {
+  width: 18%;
+}
+
+.choose-section .choose-item:nth-child(2) {
+  width: 30%;
+}
+
+.choose-section .choose-item:nth-child(3) {
+  width: 25%;
+}
+
+.choose-section .choose-item:nth-child(4) {
+  width: 27%;
+}
+
+.choose-section .choose-item .choose-title {
+  height: 15%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.choose-section .choose-item .choose-title .el-text {
+  font-size: 3.2vh;
+}
+
+.choose-section .choose-item .el-radio {
+  height: 85%;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  border-color: transparent;
 }
 
 .choose-section .operate {
@@ -897,9 +1134,22 @@ export default {
   border: 1px solid black;
 }
 
+.choose-section .operate .current-player {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 3.5vh;
+}
+
+.choose-section .operate .el-button {
+  height: 60%;
+  aspect-ratio: 2 / 1;
+  border-radius: 1vh !important;
+  font-size: 3vh;
+}
+
 .phased-section {
-  height: 50%;
-  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
@@ -907,8 +1157,6 @@ export default {
 }
 
 .finally-section {
-  height: 50%;
-  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
