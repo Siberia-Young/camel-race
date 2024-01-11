@@ -7,6 +7,10 @@
             ? 'cell pole'
             : 'cell space'
         "
+        :style="{
+          borderRight:
+            cell.id == raceStates.length - 1 ? 'none' : '0.2vh dashed grey',
+        }"
         v-for="cell in raceStates"
         :key="cell.id"
       >
@@ -15,29 +19,32 @@
             class="single-camel"
             :style="{
               backgroundColor: colors[camel],
-              color: camel == 5 ? 'white' : 'black',
             }"
             v-for="(camel, index) in reverse_camels(cell.camels)"
             :key="index"
           >
-            {{ camels[camel] }}
+            <el-text :style="{ color: camel == 5 ? 'white' : 'black' }">
+              {{ camels[camel] }}
+            </el-text>
           </div>
         </div>
         <div class="num">
           <el-text>{{ number(cell.id) }}</el-text>
         </div>
         <el-scrollbar class="trap">
-          <div
-            class="single-trap"
-            :class="{
-              'single-trap-fore': trap.type === 1 && !trap.effect,
-              'single-trap-fore-hit': trap.type === 1 && trap.effect,
-              'single-trap-back': trap.type === -1 && !trap.effect,
-              'single-trap-back-hit': trap.type === -1 && trap.effect,
-            }"
-            v-for="(trap, index) in cell.traps"
-            :key="index"
-          ></div>
+          <div class="trap-inner">
+            <div
+              class="single-trap"
+              :class="{
+                'single-trap-fore': trap.type === 1 && !trap.effect,
+                'single-trap-fore-hit': trap.type === 1 && trap.effect,
+                'single-trap-back': trap.type === -1 && !trap.effect,
+                'single-trap-back-hit': trap.type === -1 && trap.effect,
+              }"
+              v-for="(trap, index) in reverse_traps(cell.traps)"
+              :key="index"
+            ></div>
+          </div>
         </el-scrollbar>
       </div>
     </div>
@@ -76,6 +83,9 @@ export default {
     reverse_camels() {
       return (item) => item.slice().reverse();
     },
+    reverse_traps() {
+      return (item) => item.slice().reverse();
+    },
   },
 };
 </script>
@@ -88,7 +98,7 @@ export default {
   flex-direction: columns;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid black;
+  border-bottom: 0.2vh solid black;
 }
 
 .race-section .track {
@@ -112,7 +122,7 @@ export default {
 }
 
 .race-section .camel {
-  height: 65%;
+  height: 70%;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -127,7 +137,10 @@ export default {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  border: 1px solid black;
+}
+
+.race-section .single-camel .el-text {
+  font-size: 2vh;
 }
 
 .race-section .num {
@@ -138,8 +151,15 @@ export default {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  background-color: rgb(226, 226, 226);
-  border: 1px solid black;
+  box-shadow: 0 0 0.5vh #666666;
+}
+
+.race-section .pole .num{
+  background-color: #c9c9c9;
+}
+
+.race-section .space .num{
+  background-color: #e2e2e2;
 }
 
 .race-section .num .el-text {
@@ -147,17 +167,17 @@ export default {
 }
 
 .race-section .trap {
-  height: 27%;
+  height: 22%;
   width: 100%;
 }
 
 .race-section .single-trap {
   display: inline-block;
-  height: 4vh;
+  height: 3.5vh;
   aspect-ratio: 1/1;
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 80% 80%;
+  background-size: 100% 100%;
 }
 
 .race-section .single-trap-fore {

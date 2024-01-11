@@ -53,7 +53,6 @@ export default {
   /* 换行 */
   flex-wrap: wrap;
   align-items: center;
-  border: 1px solid black;
 }
 
 .dice-section .dice-show {
@@ -66,7 +65,7 @@ export default {
   align-items: center;
   font-size: 3.5vh;
   border-radius: 20%;
-  border: 1px solid black;
+  box-shadow: 0 0 0.5vh #666666;
 }
 </style>
   
