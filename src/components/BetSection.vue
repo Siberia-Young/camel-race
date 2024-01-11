@@ -39,7 +39,9 @@ export default {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid black;
+  background-color: #e3cfa0;
+  border-radius: 1.2vh;
+  box-shadow: 0 0 0.5vh #737373;
 }
 
 .bet-section .bet-item {
@@ -49,17 +51,22 @@ export default {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid black;
+  border-right: #8c8c8c 0.25vh solid;
+}
+
+.bet-section .bet-item:last-child {
+  border-right: none;
 }
 
 .bet-section .title {
   height: 20%;
   width: 100%;
+  font-size: 2.5vh;
   display: flex;
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  border: 1px solid black;
+  background-color: #dbbe7a;
 }
 
 .bet-section .bet-show {
@@ -69,18 +76,22 @@ export default {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  border: 1px solid black;
 }
 
 .bet-section .bet-single {
-  height: 25%;
-  width: 100%;
+  height: 23%;
+  width: 96%;
+  margin: 1% 2%;
   display: flex;
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  background-color: #f0f0f0;
-  border: 1px solid black;
+  background-color: #eedfbb;
+  border-radius: 1.2vh;
+}
+
+.bet-section .bet-single .el-text {
+  font-size: 2vh;
 }
 </style>
   

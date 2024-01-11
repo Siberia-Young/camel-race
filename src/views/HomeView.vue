@@ -2,7 +2,7 @@
   <div class="home-view">
     <div class="info-section" v-if="this.globalState === 'info'">
       <div class="info-show">
-        <el-text class="game-title" size="large"></el-text>
+        <el-text class="game-title" size="large">骆驼大赛</el-text>
         <div class="info-input">
           <div class="player-num">
             <el-text size="large">请选择人数：</el-text>
@@ -70,6 +70,7 @@
           class="audience-section"
           :playerStates="playerStates"
           :playerNames="playerNames"
+          :currentPlayer="currentPlayer"
         />
       </div>
       <div class="middle">
@@ -107,7 +108,11 @@
             <div class="choose-item">
               <div class="choose-title"><el-text>骰子</el-text></div>
               <el-radio label="1" border>
-                <el-text class="dice">骰子</el-text>
+                <div class="diec">
+                  <div class="choose-item-info">
+                    <div class="choose-item-info-title">骰子</div>
+                  </div>
+                </div>
               </el-radio>
             </div>
             <div class="choose-item">
@@ -120,7 +125,7 @@
               >
                 <div class="forecast">
                   <div class="choose-item-info">
-                    <el-text>预测类型:</el-text>
+                    <div class="choose-item-info-title">预测类型:</div>
                     <el-radio-group
                       v-model="singleForecast.type"
                       :disabled="forecast_disabled || choose != '2'"
@@ -130,7 +135,7 @@
                     </el-radio-group>
                   </div>
                   <div class="choose-item-info">
-                    <el-text>骆驼颜色:</el-text>
+                    <div class="choose-item-info-title">骆驼颜色:</div>
                     <el-radio-group
                       v-model="singleForecast.camelId"
                       :disabled="forecast_disabled || choose != '2'"
@@ -164,7 +169,7 @@
               >
                 <div class="bet">
                   <div class="choose-item-info">
-                    <el-text>骆驼颜色:</el-text>
+                    <div class="choose-item-info-title">骆驼颜色:</div>
                     <el-radio-group
                       v-model="singleBet.camelId"
                       :disabled="bet_disabled || choose != '3'"
@@ -196,7 +201,7 @@
               >
                 <div class="trap">
                   <div class="choose-item-info">
-                    <el-text>陷阱位置:</el-text>
+                    <div class="choose-item-info-title">陷阱位置:</div>
                     <el-select
                       v-model="singleTrap.cellId"
                       placeholder="请选位置"
@@ -215,7 +220,7 @@
                     </el-select>
                   </div>
                   <div class="choose-item-info">
-                    <el-text>陷阱类型:</el-text>
+                    <div class="choose-item-info-title">陷阱类型:</div>
                     <el-radio-group
                       v-model="singleTrap.type"
                       :disabled="trap_disabled || choose != '4'"
@@ -230,7 +235,7 @@
           </el-radio-group>
           <el-button-group class="operate">
             <div class="current-player">
-              当前玩家：{{ playerNames[currentPlayer] }}
+              <el-text>当前玩家：{{ playerNames[currentPlayer] }}</el-text>
             </div>
             <el-button type="danger" @click="reset">重置</el-button>
             <el-button
@@ -299,8 +304,8 @@ export default {
   },
   data() {
     return {
-      globalState: "running", //info,initial,wait,running,settling,finished
-      playerNum: 8,
+      globalState: "info", //info,initial,wait,running,settling,finished
+      playerNum: 3,
       currentPlayer: 0,
       customizeOrNot: false,
       customizePlayerNamesStr: "",
@@ -1026,12 +1031,13 @@ export default {
 }
 
 .bet-section {
-  height: 35%;
-  width: 100%;
+  height: 25.7%;
+  width: 98.4%;
+  margin: 1% 0.8% 0.3% 0.8%;
 }
 
 .control-section {
-  height: 65%;
+  height: 73%;
   width: 100%;
 }
 
@@ -1050,7 +1056,7 @@ export default {
 }
 
 .choose-section .choose {
-  height: 80%;
+  height: 85%;
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -1060,14 +1066,14 @@ export default {
 }
 
 .choose-section .choose-item {
-  height: 96%;
+  height: 97%;
   width: 24%;
-  margin: 2% 0.5%;
+  margin: 1.5% 0.5%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #b1b1b1;
+  background-color: #b3b3b3;
   border-radius: 1.2vh;
 }
 
@@ -1080,13 +1086,13 @@ export default {
   margin: 5% 0;
 }
 
-.choose-item-info .el-text {
+.choose-item-info-title {
   font-size: 2vh;
-  margin-right: 5%;
+  margin-right: 1vh;
 }
 
 .choose-section .choose-item:nth-child(1) {
-  width: 18%;
+  width: 15%;
 }
 
 .choose-section .choose-item:nth-child(2) {
@@ -1098,7 +1104,7 @@ export default {
 }
 
 .choose-section .choose-item:nth-child(4) {
-  width: 27%;
+  width: 30%;
 }
 
 .choose-section .choose-item .choose-title {
@@ -1122,31 +1128,34 @@ export default {
   justify-content: center;
   align-items: center;
   border-color: transparent;
+  border-radius: 1.2vh;
+  border: 0.5vh solid #b3b3b3;
+  background-color: #cccccc;
+}
+
+.choose-section .choose-item .el-select {
+  width: 12vh;
+  font-size: 2vh !important;
 }
 
 .choose-section .operate {
-  height: 20%;
+  height: 15%;
   width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: space-evenly;
   align-items: center;
-  border: 1px solid black;
 }
 
-.choose-section .operate .current-player {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+.choose-section .operate .current-player .el-text {
   font-size: 3.5vh;
 }
 
 .choose-section .operate .el-button {
-  height: 60%;
+  height: 80%;
   aspect-ratio: 2 / 1;
   border-radius: 1vh !important;
-  font-size: 3vh;
+  font-size: 2.5vh;
 }
 
 .phased-section {
@@ -1174,3 +1183,18 @@ export default {
 }
 </style>
   
+
+<style>
+.choose-section .forecast .el-radio-button__inner,
+.choose-section .bet .el-radio-button__inner,
+.choose-section .trap .el-radio-button__inner {
+  height: 4vh !important;
+  width: 3vw !important;
+  font-size: 1.7vh;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10% !important;
+}
+</style>

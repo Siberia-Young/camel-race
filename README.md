@@ -44,7 +44,14 @@ This is a project that simulates the board game "Camel Race".
 8. 优化结果预测展示部分样式
 9. 优化骰子过程展示部分样式
 
+## version 0.3.1
 
+1. 优化玩家操作面板样式
+2. 优化比赛过程展示部分样式
+3. 优化玩家信息展示部分样式
+4. 优化下注领先展示部分样式
+5. 优化结果预测展示部分样式
+6. 优化骰子过程展示部分样式
 
 ## game rules
 
