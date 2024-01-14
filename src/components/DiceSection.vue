@@ -50,7 +50,6 @@ export default {
   display: flex;
   flex-direction: row;
   justify-content: space-evenly;
-  /* 换行 */
   flex-wrap: wrap;
   align-items: center;
 }

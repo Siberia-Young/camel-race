@@ -1,8 +1,12 @@
 <template>
   <div class="home-view">
     <div class="info-section" v-if="this.globalState === 'info'">
-      <div class="info-show">
+      <div class="rules">
         <el-text class="game-title" size="large">骆驼大赛</el-text>
+        <el-text class="rules-title">桌游规则</el-text>
+        <RulesContent class="rules-content"></RulesContent>
+      </div>
+      <div class="info-show">
         <div class="info-input">
           <div class="player-num">
             <el-text size="large">请选择人数：</el-text>
@@ -51,9 +55,6 @@
             继续
           </el-button>
         </div>
-      </div>
-      <div class="rules">
-        <el-text class="rules-title">桌游规则</el-text>
       </div>
     </div>
     <div class="top">
@@ -234,6 +235,16 @@
             </div>
           </el-radio-group>
           <el-button-group class="operate">
+            <el-button type="warning" @click="this.rulesDisplay = true">
+              规则
+            </el-button>
+            <div class="mask" v-if="rulesDisplay">
+              <RulesContent class="rules-display">
+                <el-button type="danger" @click="this.rulesDisplay = false">
+                  关闭
+                </el-button>
+              </RulesContent>
+            </div>
             <div class="current-player">
               <el-text>当前玩家：{{ playerNames[currentPlayer] }}</el-text>
             </div>
@@ -293,6 +304,7 @@ import BetSection from "@/components/BetSection";
 import DiceSection from "@/components/DiceSection";
 import ForecastSection from "@/components/ForecastSection";
 import RaceSection from "@/components/RaceSection";
+import RulesContent from "@/components/RulesContent";
 export default {
   name: "HomeView",
   components: {
@@ -301,10 +313,12 @@ export default {
     DiceSection,
     ForecastSection,
     RaceSection,
+    RulesContent,
   },
   data() {
     return {
       globalState: "info", //info,initial,wait,running,settling,finished
+      rulesDisplay: false,
       playerNum: 3,
       currentPlayer: 0,
       customizeOrNot: false,
@@ -862,7 +876,7 @@ export default {
   aspect-ratio: 1.75 / 1;
   max-width: 100vw;
   max-height: 56.25vw;
-  position: fixed;
+  position: absolute;
   z-index: 1;
   background-color: #eedfbb;
   display: flex;
@@ -871,23 +885,48 @@ export default {
   align-items: center;
 }
 
-.info-show {
+.rules {
   height: 100%;
-  width: 60%;
+  width: 50%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
 }
 
-.info-show .game-title {
-  height: 30%;
+.rules .game-title {
+  height: 20%;
   width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   font-size: 8vh;
+}
+
+.rules .rules-title {
+  height: 10%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 4.5vh;
+}
+
+.rules .rules-content {
+  height: 66%;
+  width: 90%;
+  margin: 2% 5%;
+}
+
+.info-show {
+  height: 100%;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .info-show .info-input {
@@ -965,26 +1004,6 @@ export default {
   border-color: transparent !important;
 }
 
-.rules {
-  height: 100%;
-  width: 40%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  border: 1px solid black;
-}
-
-.rules-title {
-  height: 10%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  font-size: 4.5vh;
-}
-
 .top {
   height: 30%;
   width: 100%;
@@ -1038,7 +1057,8 @@ export default {
 
 .control-section {
   height: 73%;
-  width: 100%;
+  width: 97%;
+  margin: 0 1.5%;
 }
 
 .initial-section {
@@ -1147,11 +1167,36 @@ export default {
   align-items: center;
 }
 
+.choose-section .operate .mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  z-index: 1;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.choose-section .operate .rules-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 85vh;
+  width: 75vw;
+  z-index: 2;
+}
+
+.choose-section .operate .rules-display .el-button{
+  margin-bottom: 5vh;
+
+}
+
 .choose-section .operate .current-player .el-text {
   font-size: 3.5vh;
 }
 
-.choose-section .operate .el-button {
+.choose-section .operate > .el-button {
   height: 80%;
   aspect-ratio: 2 / 1;
   border-radius: 1vh !important;
